@@ -113,7 +113,7 @@
   <header class="no-print bg-slate-800 text-white py-4 px-6 shadow-md">
     <div class="max-w-7xl mx-auto flex justify-between items-center">
       <h1 class="text-xl font-bold tracking-wide flex items-center gap-2">
-        <span>✍️</span> 中文單字筆順練習本產生器 <span class="text-xs bg-indigo-600 px-2 py-0.5 rounded font-normal">v1.4 (無縫格子)</span>
+        <span>✍️</span> 中文單字筆順練習本產生器 <span class="text-xs bg-indigo-600 px-2 py-0.5 rounded font-normal">v1.5 (左對齊單格子)</span>
       </h1>
       <div class="text-sm text-slate-400">
         純前端版 (無後端) • 基於 Hanzi Writer 數據
@@ -166,8 +166,7 @@
           <label class="text-sm text-gray-600">旁欄格子 (注音/拼音)</label>
           <select id="sideBoxes" class="border rounded-md px-2 py-1 text-sm bg-gray-50">
             <option value="none">無</option>
-            <option value="pinyin">1 格 (拼音)</option>
-            <option value="zhuyin" selected>2 格 (台灣注音+聲調)</option>
+            <option value="pinyin" selected>1 格 (拼音/注音)</option>
           </select>
         </div>
 
@@ -310,7 +309,7 @@
       if (chars.length === 0) {
         previewContainer.innerHTML = `
           <div class="no-print bg-white p-12 rounded-xl shadow-md text-center text-red-400 w-full max-w-[210mm]">
-            未檢測到有效的中文漢字，請重新輸入。
+            未檢測到有效的中文漢字，請重新輸入.
           </div>
         `;
         return;
@@ -410,10 +409,10 @@
         const colBorderClass = isLastCol ? '' : 'border-r-4 border-black';
 
         // --- Header Cell ---
-        // Removed right padding (pr-0) and added justify-end. The cell itself is a flex container
-        // that flushes the grid content directly to the right border.
+        // Changed to flush left (justify-start) and removed left padding (pl-0) so the main square
+        // touches the left border of the column cell, matching traditional Chinese layout guidelines.
         const headerCell = document.createElement('div');
-        headerCell.className = `flex-1 flex ${colBorderClass} h-full py-2 pl-2 pr-0 items-center justify-end bg-white overflow-hidden`;
+        headerCell.className = `flex-1 flex ${colBorderClass} h-full py-2 pl-0 pr-2 items-center justify-start bg-white overflow-hidden`;
         if (char) {
           headerCell.appendChild(createGridCell(char, charData, false, sideBoxStyle, 'header'));
         }
@@ -430,11 +429,11 @@
         strokeRow.appendChild(strokeCell);
 
         // --- Practice Cells ---
-        // Removed right padding (pr-0) and added justify-end to match the header.
+        // Changed to flush left (justify-start) and removed left padding (pl-0) to align with the header.
         const tracingRowsLimit = parseInt(tracingRowsSelect.value);
         for (let r = 0; r < practiceRowsCount; r++) {
           const practiceCell = document.createElement('div');
-          practiceCell.className = `flex-1 flex ${colBorderClass} h-full py-1.5 pl-1.5 pr-0 items-center justify-end bg-white overflow-hidden`;
+          practiceCell.className = `flex-1 flex ${colBorderClass} h-full py-1.5 pl-0 pr-1.5 items-center justify-start bg-white overflow-hidden`;
           
           if (char) {
             const isTracing = (r < tracingRowsLimit);
@@ -453,13 +452,13 @@
       return page;
     }
 
-    // Create a Grid Cell (Main Character Box + Optional Side Boxes)
+    // Create a Grid Cell (Main Character Box + Optional Side Box)
     function createGridCell(char, charData, isTracing, sideBoxStyle, type) {
       // Returns the grid container directly. Ancestor cells (headerCell/practiceCell) 
-      // handle the alignment (justify-end) and padding (pr-0), removing redundant nesting divs
-      // and resolving flex-width bugs that caused "double column" gaps on the right.
+      // handle the alignment (justify-start) and padding (pl-0), aligning the main square
+      // flush against the left border of the column.
       const grid = document.createElement('div');
-      grid.className = 'flex h-full max-w-full items-center justify-end overflow-hidden';
+      grid.className = 'flex h-full max-w-full items-center justify-start overflow-hidden';
 
       // Main Grid Box (Square)
       // Uses h-full, max-w-full, and aspect-square to ensure it is a perfect square.
@@ -500,20 +499,11 @@
 
       grid.appendChild(mainBox);
 
-      // Side Boxes (attached directly as flex siblings with shared borders, flushing to the right)
-      if (sideBoxStyle === 'pinyin') {
+      // Side Box (Single unified column for Pinyin/Zhuyin as requested, eliminating "double grid" columns)
+      if (sideBoxStyle === 'pinyin' || sideBoxStyle === 'zhuyin') {
         const sideBox = document.createElement('div');
         sideBox.className = 'h-full w-8 border-y-2 border-r-2 border-slate-400 shrink-0';
         grid.appendChild(sideBox);
-      } else if (sideBoxStyle === 'zhuyin') {
-        const zhuyinBox = document.createElement('div');
-        zhuyinBox.className = 'h-full w-6 border-y-2 border-r-2 border-slate-400 shrink-0';
-        
-        const toneBox = document.createElement('div');
-        toneBox.className = 'h-full w-3.5 border-y-2 border-r-2 border-slate-400 shrink-0';
-        
-        grid.appendChild(zhuyinBox);
-        grid.appendChild(toneBox);
       }
 
       return grid;
