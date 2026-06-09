@@ -394,9 +394,16 @@
         practiceRows.push(row);
       }
 
+      // Pad pageChars to colsPerPage and reverse it for Right-to-Left column flow (traditional style)
+      const renderedChars = [];
+      for (let i = 0; i < colsPerPage; i++) {
+        renderedChars.push(pageChars[i] || '');
+      }
+      renderedChars.reverse();
+
       // Populate Columns
       for (let i = 0; i < colsPerPage; i++) {
-        const char = pageChars[i] || '';
+        const char = renderedChars[i];
         const charData = state.cache[char];
 
         const isLastCol = (i === colsPerPage - 1);
