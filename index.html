@@ -113,7 +113,7 @@
   <header class="no-print bg-slate-800 text-white py-4 px-6 shadow-md">
     <div class="max-w-7xl mx-auto flex justify-between items-center">
       <h1 class="text-xl font-bold tracking-wide flex items-center gap-2">
-        <span>✍️</span> 中文單字筆順練習本產生器 <span class="text-xs bg-indigo-600 px-2 py-0.5 rounded font-normal">v1.2 (RTL 筆順)</span>
+        <span>✍️</span> 中文單字筆順練習本產生器 <span class="text-xs bg-indigo-600 px-2 py-0.5 rounded font-normal">v1.3 (RTL 欄與筆順)</span>
       </h1>
       <div class="text-sm text-slate-400">
         純前端版 (無後端) • 基於 Hanzi Writer 數據
@@ -410,8 +410,10 @@
         const colBorderClass = isLastCol ? '' : 'border-r-4 border-black';
 
         // --- Header Cell ---
+        // Removed right padding (pr-0) to allow the rightmost Zhuyin box to flush perfectly with the cell border,
+        // eliminating the "double column" gap look on the right.
         const headerCell = document.createElement('div');
-        headerCell.className = `flex-1 flex ${colBorderClass} h-full p-2 items-center justify-center bg-white overflow-hidden`;
+        headerCell.className = `flex-1 flex ${colBorderClass} h-full py-2 pl-2 pr-0 items-center justify-end bg-white overflow-hidden`;
         if (char) {
           headerCell.appendChild(createGridCell(char, charData, false, sideBoxStyle, 'header'));
         }
@@ -428,10 +430,11 @@
         strokeRow.appendChild(strokeCell);
 
         // --- Practice Cells ---
+        // Removed right padding (pr-0) to match the header and keep the grids flushed to the right.
         const tracingRowsLimit = parseInt(tracingRowsSelect.value);
         for (let r = 0; r < practiceRowsCount; r++) {
           const practiceCell = document.createElement('div');
-          practiceCell.className = `flex-1 flex ${colBorderClass} h-full p-1.5 items-center justify-center bg-white overflow-hidden`;
+          practiceCell.className = `flex-1 flex ${colBorderClass} h-full py-1.5 pl-1.5 pr-0 items-center justify-end bg-white overflow-hidden`;
           
           if (char) {
             const isTracing = (r < tracingRowsLimit);
@@ -453,11 +456,13 @@
     // Create a Grid Cell (Main Character Box + Optional Side Boxes)
     function createGridCell(char, charData, isTracing, sideBoxStyle, type) {
       const container = document.createElement('div');
-      container.className = 'flex w-full h-full justify-center items-center overflow-hidden';
+      // Changed justify-center to justify-end. This flushes the inner grid to the right,
+      // ensuring the Zhuyin side boxes sit flush against the right border of the column cell.
+      container.className = 'flex w-full h-full justify-end items-center overflow-hidden';
 
       // Inner container that holds the square and side boxes together with NO GAP (as requested)
       const innerGroup = document.createElement('div');
-      innerGroup.className = 'flex h-full max-w-full items-center justify-center overflow-hidden';
+      innerGroup.className = 'flex h-full max-w-full items-center justify-end overflow-hidden';
 
       // Main Grid Box (Square)
       // Uses h-full, max-w-full, and aspect-square to ensure it is a perfect square.
