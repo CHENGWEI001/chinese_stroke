@@ -448,15 +448,15 @@
       const container = document.createElement('div');
       container.className = 'flex w-full h-full justify-center items-center overflow-hidden';
 
-      // Wrapper for Main Box to contain it and allow responsive scaling within the cell
-      const mainBoxWrapper = document.createElement('div');
-      mainBoxWrapper.className = 'flex-1 h-full flex items-center justify-center min-w-0 overflow-hidden';
+      // Inner container that holds the square and side boxes together with NO GAP (as requested)
+      const innerGroup = document.createElement('div');
+      innerGroup.className = 'flex h-full max-w-full items-center justify-center overflow-hidden';
 
       // Main Grid Box (Square)
-      // Uses h-full, max-w-full, and aspect-square to ensure it is a perfect square 
-      // that scales down to fit available width if height is too large.
+      // Uses h-full, max-w-full, and aspect-square to ensure it is a perfect square.
+      // shrink and min-w-0 allows it to scale down to fit the column width if necessary.
       const mainBox = document.createElement('div');
-      mainBox.className = 'relative h-full max-w-full aspect-square border-2 border-slate-400 flex items-center justify-center';
+      mainBox.className = 'relative h-full max-w-full aspect-square border-2 border-slate-400 flex items-center justify-center shrink min-w-0';
       
       // Render Grid Lines (Tianzige / Mige)
       const gridStyle = gridStyleSelect.value;
@@ -489,14 +489,13 @@
         }
       }
 
-      mainBoxWrapper.appendChild(mainBox);
-      container.appendChild(mainBoxWrapper);
+      innerGroup.appendChild(mainBox);
 
-      // Side Boxes
+      // Side Boxes (attached directly as flex siblings with shared borders)
       if (sideBoxStyle === 'pinyin') {
         const sideBox = document.createElement('div');
         sideBox.className = 'h-full w-8 border-y-2 border-r-2 border-slate-400 shrink-0';
-        container.appendChild(sideBox);
+        innerGroup.appendChild(sideBox);
       } else if (sideBoxStyle === 'zhuyin') {
         const zhuyinBox = document.createElement('div');
         zhuyinBox.className = 'h-full w-6 border-y-2 border-r-2 border-slate-400 shrink-0';
@@ -504,10 +503,11 @@
         const toneBox = document.createElement('div');
         toneBox.className = 'h-full w-3.5 border-y-2 border-r-2 border-slate-400 shrink-0';
         
-        container.appendChild(zhuyinBox);
-        container.appendChild(toneBox);
+        innerGroup.appendChild(zhuyinBox);
+        innerGroup.appendChild(toneBox);
       }
 
+      container.appendChild(innerGroup);
       return container;
     }
 
@@ -517,62 +517,99 @@
       const highlight = highlightNewCheck.checked;
       const showOutline = showOutlineCheck.checked;
 
-      // Container info
       const containerHeight = 340; // Approx height in px
-      // Calculate optimal size to fit all strokes vertically
       const padding = 4;
       const gap = 2;
       const availableHeight = containerHeight - (padding * 2);
-      let svgSize = Math.floor((availableHeight - (totalStrokes - 1) * gap) / totalStrokes);
+
+      // Determine if we need to wrap into 2 columns (for characters with > 10 strokes)
+      const useTwoCols = (totalStrokes > 10);
       
-      // Clamp size between 14px and 30px for readability
-      svgSize = Math.max(14, Math.min(30, svgSize));
+      if (useTwoCols) {
+        const mid = Math.ceil(totalStrokes / 2);
+        
+        const colsContainer = document.createElement('div');
+        colsContainer.className = 'flex flex-row justify-center gap-3 w-full h-full py-1';
+        
+        const leftCol = document.createElement('div');
+        leftCol.className = 'flex flex-col items-center justify-between h-full';
+        leftCol.style.gap = `${gap}px`;
+        
+        const rightCol = document.createElement('div');
+        rightCol.className = 'flex flex-col items-center justify-between h-full';
+        rightCol.style.gap = `${gap}px`;
 
-      const seqContainer = document.createElement('div');
-      seqContainer.className = 'flex flex-col items-center justify-between h-full py-1';
-      seqContainer.style.gap = `${gap}px`;
+        // Calculate SVG size for the larger half (max mid strokes per col)
+        const maxStrokesPerCol = mid;
+        let svgSize = Math.floor((availableHeight - (maxStrokesPerCol - 1) * gap) / maxStrokesPerCol);
+        svgSize = Math.max(14, Math.min(30, svgSize));
 
-      for (let i = 0; i < totalStrokes; i++) {
-        // For the i-th step, we render strokes from 0 to i
-        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        svg.setAttribute('viewBox', SVG_VIEWBOX);
-        svg.style.width = `${svgSize}px`;
-        svg.style.height = `${svgSize}px`;
-        svg.classList.add('shrink-0');
-
-        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        g.setAttribute('transform', SVG_TRANSFORM);
-
-        // 1. Draw background outline if enabled (all strokes in very light gray)
-        if (showOutline) {
-          charData.strokes.forEach(pathData => {
-            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            path.setAttribute('d', pathData);
-            path.setAttribute('fill', '#f3f4f6'); // ultra light gray
-            g.appendChild(path);
-          });
+        // Render Left Column (first half of strokes)
+        for (let i = 0; i < mid; i++) {
+          leftCol.appendChild(createStrokeStepSVG(charData, i, svgSize, highlight, showOutline));
         }
 
-        // 2. Draw completed strokes (0 to i-1)
-        for (let j = 0; j < i; j++) {
+        // Render Right Column (second half of strokes)
+        for (let i = mid; i < totalStrokes; i++) {
+          rightCol.appendChild(createStrokeStepSVG(charData, i, svgSize, highlight, showOutline));
+        }
+
+        colsContainer.appendChild(leftCol);
+        colsContainer.appendChild(rightCol);
+        container.appendChild(colsContainer);
+      } else {
+        // Single column layout for simpler characters
+        const seqContainer = document.createElement('div');
+        seqContainer.className = 'flex flex-col items-center justify-between h-full py-1';
+        seqContainer.style.gap = `${gap}px`;
+
+        let svgSize = Math.floor((availableHeight - (totalStrokes - 1) * gap) / totalStrokes);
+        svgSize = Math.max(14, Math.min(30, svgSize));
+
+        for (let i = 0; i < totalStrokes; i++) {
+          seqContainer.appendChild(createStrokeStepSVG(charData, i, svgSize, highlight, showOutline));
+        }
+        container.appendChild(seqContainer);
+      }
+    }
+
+    // Helper: Create a single SVG stroke step
+    function createStrokeStepSVG(charData, stepIndex, svgSize, highlight, showOutline) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', SVG_VIEWBOX);
+      svg.style.width = `${svgSize}px`;
+      svg.style.height = `${svgSize}px`;
+      svg.classList.add('shrink-0');
+
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('transform', SVG_TRANSFORM);
+
+      // 1. Draw background outline if enabled
+      if (showOutline) {
+        charData.strokes.forEach(pathData => {
           const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          path.setAttribute('d', charData.strokes[j]);
-          // If highlighting new stroke, completed strokes are gray, otherwise black
-          path.setAttribute('fill', highlight ? '#9ca3af' : '#000000'); 
+          path.setAttribute('d', pathData);
+          path.setAttribute('fill', '#f3f4f6'); // ultra light gray
           g.appendChild(path);
-        }
-
-        // 3. Draw the active/new stroke (i)
-        const activePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        activePath.setAttribute('d', charData.strokes[i]);
-        activePath.setAttribute('fill', highlight ? '#ef4444' : '#000000'); // Red if highlight, else black
-        g.appendChild(activePath);
-
-        svg.appendChild(g);
-        seqContainer.appendChild(svg);
+        });
       }
 
-      container.appendChild(seqContainer);
+      // 2. Draw completed strokes (0 to stepIndex - 1)
+      for (let j = 0; j < stepIndex; j++) {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', charData.strokes[j]);
+        path.setAttribute('fill', highlight ? '#9ca3af' : '#000000'); // gray if highlighted, else black
+        g.appendChild(path);
+      }
+
+      // 3. Draw the active/new stroke
+      const activePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      activePath.setAttribute('d', charData.strokes[stepIndex]);
+      activePath.setAttribute('fill', highlight ? '#ef4444' : '#000000'); // red if highlighted, else black
+      g.appendChild(activePath);
+
+      svg.appendChild(g);
+      return svg;
     }
 
     // Helper: Create a full character SVG
