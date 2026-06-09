@@ -554,8 +554,9 @@
           rightCol.appendChild(createStrokeStepSVG(charData, i, svgSize, highlight, showOutline));
         }
 
-        colsContainer.appendChild(leftCol);
+        // Right-to-left flow: second half on the left, first half on the right
         colsContainer.appendChild(rightCol);
+        colsContainer.appendChild(leftCol);
         container.appendChild(colsContainer);
       } else {
         // Single column layout for simpler characters
