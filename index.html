@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>中文單字筆順練習本產生器</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /* A4 Page Styles */
+    .page {
+      width: 210mm;
+      height: 297mm;
+      padding: 15mm;
+      margin: 10mm auto;
+      background: white;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      box-sizing: border-box;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Print Styles */
+    @media print {
+      body {
+        background: none;
+        margin: 0;
+        padding: 0;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .page {
+        margin: 0;
+        border: none;
+        box-shadow: none;
+        page-break-after: always;
+        /* Ensure exact A4 size for printing */
+        width: 210mm;
+        height: 297mm;
+        padding: 15mm;
+        float: none;
+      }
+    }
+
+    /* Custom Fonts */
+    .font-kaiti {
+      font-family: "KaiTi", "楷体", "STKaiti", "BiauKai", "Noto Serif TC", serif;
+    }
+    .font-sans-tc {
+      font-family: "Noto Sans TC", sans-serif;
+    }
+    .font-serif-tc {
+      font-family: "Noto Serif TC", serif;
+    }
+
+    /* Grid dashed lines */
+    .grid-line {
+      stroke: #ffccd5;
+      stroke-dasharray: 4, 4;
+      stroke-width: 1.5;
+    }
+    .grid-border {
+      stroke: #ff99ab;
+      stroke-width: 2;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 font-sans-tc text-gray-800 min-h-screen flex flex-col">
+
+  <!-- Header / Navigation (No Print) -->
+  <header class="no-print bg-slate-800 text-white py-4 px-6 shadow-md">
+    <div class="max-w-7xl mx-auto flex justify-between items-center">
+      <h1 class="text-xl font-bold tracking-wide flex items-center gap-2">
+        <span>✍️</span> 中文單字筆順練習本產生器
+      </h1>
+      <div class="text-sm text-slate-400">
+        純前端版 (無後端) • 基於 Hanzi Writer 數據
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <div class="flex-1 max-w-7xl w-full mx-auto flex flex-col lg:flex-row gap-6 p-6">
+    
+    <!-- Left Panel: Controls (No Print) -->
+    <div class="no-print w-full lg:w-96 bg-white p-6 rounded-xl shadow-md space-y-6 self-start">
+      <h2 class="text-lg font-bold border-b pb-2 text-slate-700">設定面版</h2>
+      
+      <!-- Characters Input -->
+      <div class="space-y-2">
+        <label class="block text-sm font-medium text-gray-700">輸入中文單字</label>
+        <textarea id="charInput" rows="3" class="w-full border-gray-300 rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500 border p-2.5 text-lg" placeholder="例如：著細色顏"></textarea>
+        <p class="text-xs text-gray-400">輸入想要生成練習表的漢字，多個漢字會依設定分頁顯示。</p>
+      </div>
+
+      <!-- Layout Options -->
+      <div class="space-y-4">
+        <h3 class="text-sm font-semibold text-gray-600 uppercase tracking-wider">版面配置</h3>
+        
+        <!-- Chars Per Page -->
+        <div class="flex justify-between items-center">
+          <label class="text-sm text-gray-600">每頁字數 (欄數)</label>
+          <select id="charsPerPage" class="border rounded-md px-2 py-1 text-sm bg-gray-50">
+            <option value="3">3 字</option>
+            <option value="4" selected>4 字</option>
+            <option value="5">5 字</option>
+          </select>
+        </div>
+
+        <!-- Practice Rows -->
+        <div class="flex justify-between items-center">
+          <label class="text-sm text-gray-600">練習列數</label>
+          <select id="practiceRows" class="border rounded-md px-2 py-1 text-sm bg-gray-50">
+            <option value="4">4 列</option>
+            <option value="5">5 列</option>
+            <option value="6" selected>6 列</option>
+            <option value="7">7 列</option>
+            <option value="8">8 列</option>
+          </select>
+        </div>
+
+        <!-- Side Boxes Style -->
+        <div class="flex justify-between items-center">
+          <label class="text-sm text-gray-600">旁欄格子 (注音/拼音)</label>
+          <select id="sideBoxes" class="border rounded-md px-2 py-1 text-sm bg-gray-50">
+            <option value="none">無</option>
+            <option value="pinyin">1 格 (拼音)</option>
+            <option value="zhuyin" selected>2 格 (台灣注音+聲調)</option>
+          </select>
+        </div>
+
+        <!-- Grid Style -->
+        <div class="flex justify-between items-center">
+          <label class="text-sm text-gray-600">練習格樣式</label>
+          <select id="gridStyle" class="border rounded-md px-2 py-1 text-sm bg-gray-50">
+            <option value="tianzige" selected>田字格</option>
+            <option value="mige">米字格</option>
+            <option value="blank">無虛線</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Stroke Sequence Options -->
+      <div class="space-y-4">
+        <h3 class="text-sm font-semibold text-gray-600 uppercase tracking-wider">筆順設定</h3>
+        
+        <!-- Highlight New Stroke -->
+        <div class="flex items-center justify-between">
+          <label class="text-sm text-gray-600" for="highlightNew">新增筆畫標紅</label>
+          <input type="checkbox" id="highlightNew" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4" checked>
+        </div>
+
+        <!-- Show Outline in Sequence -->
+        <div class="flex items-center justify-between">
+          <label class="text-sm text-gray-600" for="showOutline">顯示背景字形輪廓</label>
+          <input type="checkbox" id="showOutline" class="rounded text-indigo-600 focus:ring-indigo-500 h-4 w-4" checked>
+        </div>
+
+        <!-- Tracing Rows -->
+        <div class="flex justify-between items-center">
+          <label class="text-sm text-gray-600">描紅練習列數</label>
+          <select id="tracingRows" class="border rounded-md px-2 py-1 text-sm bg-gray-50">
+            <option value="0">0 列 (不描紅)</option>
+            <option value="1">1 列</option>
+            <option value="2" selected>2 列</option>
+            <option value="3">3 列</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div class="pt-4 space-y-3">
+        <button id="generateBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 px-4 rounded-lg shadow transition duration-150 flex items-center justify-center gap-2">
+          <span>🔄</span> 更新預覽
+        </button>
+        <button id="printBtn" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 px-4 rounded-lg shadow transition duration-150 flex items-center justify-center gap-2">
+          <span>🖨️</span> 列印 / 儲存為 PDF
+        </button>
+      </div>
+
+      <!-- Quick Tips -->
+      <div class="bg-blue-50 p-4 rounded-lg text-xs text-blue-700 space-y-1">
+        <p class="font-bold">💡 小撇步：</p>
+        <p>1. 點擊「列印」後，在列印對話框中將目標列印機選擇為<strong>「另存為 PDF」</strong>即可下載檔案。</p>
+        <p>2. 建議勾選<strong>「背景圖形」</strong>以確保紅色虛線格能正確顯示。</p>
+        <p>3. 本工具會自動從 CDN 下載筆順數據，初次輸入字元時可能需要短暫載入時間。</p>
+      </div>
+    </div>
+
+    <!-- Right Panel: Print Preview -->
+    <div class="flex-1 flex flex-col items-center overflow-x-auto">
+      <!-- Preview Header (No Print) -->
+      <div class="no-print w-full max-w-[210mm] mb-4 flex justify-between items-center bg-white p-4 rounded-lg shadow-sm">
+        <span class="text-sm font-semibold text-gray-500">列印預覽 (A4 比例)</span>
+        <span id="pageCount" class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-medium">共 0 頁</span>
+      </div>
+
+      <!-- Pages Container -->
+      <div id="previewContainer" class="w-full">
+        <!-- Pages will be dynamically inserted here -->
+        <div class="no-print bg-white p-12 rounded-xl shadow-md text-center text-gray-400 w-full max-w-[210mm]">
+          請在左側輸入漢字並點擊「更新預覽」開始。
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer (No Print) -->
+  <footer class="no-print bg-slate-800 text-slate-400 py-4 text-center text-xs border-t border-slate-700 mt-auto">
+    <p>© 2026 中文單字筆順練習本產生器. All rights reserved.</p>
+  </footer>
+
+  <!-- App Logic -->
+  <script>
+    // Constants
+    const DATA_CDN = 'https://cdn.jsdelivr.net/npm/hanzi-writer-data@2.0';
+    const SVG_VIEWBOX = '0 0 1024 1024';
+    const SVG_TRANSFORM = 'scale(1, -1) translate(0, -900)';
+
+    // State
+    const state = {
+      cache: {},
+      loading: false
+    };
+
+    // DOM Elements
+    const charInput = document.getElementById('charInput');
+    const charsPerPageSelect = document.getElementById('charsPerPage');
+    const practiceRowsSelect = document.getElementById('practiceRows');
+    const sideBoxesSelect = document.getElementById('sideBoxes');
+    const gridStyleSelect = document.getElementById('gridStyle');
+    const highlightNewCheck = document.getElementById('highlightNew');
+    const showOutlineCheck = document.getElementById('showOutline');
+    const tracingRowsSelect = document.getElementById('tracingRows');
+    
+    const generateBtn = document.getElementById('generateBtn');
+    const printBtn = document.getElementById('printBtn');
+    const previewContainer = document.getElementById('previewContainer');
+    const pageCountBadge = document.getElementById('pageCount');
+
+    // Default Characters on load
+    charInput.value = "著細色顏";
+
+    // Event Listeners
+    generateBtn.addEventListener('click', handleGenerate);
+    printBtn.addEventListener('click', () => window.print());
+
+    // Initialize
+    handleGenerate();
+
+    // Core Handlers
+    async function handleGenerate() {
+      const text = charInput.value.trim();
+      if (!text) {
+        previewContainer.innerHTML = `
+          <div class="no-print bg-white p-12 rounded-xl shadow-md text-center text-gray-400 w-full max-w-[210mm]">
+            請輸入至少一個漢字。
+          </div>
+        `;
+        pageCountBadge.textContent = "共 0 頁";
+        return;
+      }
+
+      // Filter out non-Chinese characters (rough check, keeping it simple)
+      const chars = Array.from(text).filter(char => /\p{Unified_Ideograph}/u.test(char));
+      
+      if (chars.length === 0) {
+        previewContainer.innerHTML = `
+          <div class="no-print bg-white p-12 rounded-xl shadow-md text-center text-red-400 w-full max-w-[210mm]">
+            未檢測到有效的中文漢字，請重新輸入。
+          </div>
+        `;
+        return;
+      }
+
+      state.loading = true;
+      previewContainer.innerHTML = `
+        <div class="no-print bg-white p-12 rounded-xl shadow-md text-center text-gray-500 w-full max-w-[210mm] flex flex-col items-center justify-center gap-3">
+          <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+          <span>正在獲取筆順數據，請稍候...</span>
+        </div>
+      `;
+
+      // Fetch data for all unique characters
+      const uniqueChars = [...new Set(chars)];
+      await Promise.all(uniqueChars.map(fetchCharData));
+
+      state.loading = false;
+      renderApp(chars);
+    }
+
+    // Fetch data for all unique characters
+    async function fetchCharData(char) {
+      if (state.cache[char]) return state.cache[char];
+      
+      try {
+        const response = await fetch(`${DATA_CDN}/${encodeURIComponent(char)}.json`);
+        if (!response.ok) throw new Error('Character data not found');
+        const data = await response.json();
+        state.cache[char] = data;
+      } catch (error) {
+        console.error(`Failed to load data for: ${char}`, error);
+        state.cache[char] = null; // Mark as failed
+      }
+    }
+
+    // Render the entire application preview
+    function renderApp(chars) {
+      previewContainer.innerHTML = '';
+      
+      const colsPerPage = parseInt(charsPerPageSelect.value);
+      const totalPages = Math.ceil(chars.length / colsPerPage);
+      pageCountBadge.textContent = `共 ${totalPages} 頁`;
+
+      for (let p = 0; p < totalPages; p++) {
+        const pageChars = chars.slice(p * colsPerPage, (p + 1) * colsPerPage);
+        const pageEl = createPage(pageChars, colsPerPage);
+        previewContainer.appendChild(pageEl);
+      }
+    }
+
+    // Create a single A4 page
+    function createPage(pageChars, colsPerPage) {
+      const page = document.createElement('div');
+      page.className = 'page font-kaiti';
+
+      // Grid Table Container (Thick outer border)
+      const table = document.createElement('div');
+      table.className = 'border-4 border-black h-full flex flex-col justify-between';
+      
+      // Calculate widths based on side boxes selection
+      const sideBoxStyle = sideBoxesSelect.value;
+      let gridTemplate = '';
+      if (sideBoxStyle === 'none') {
+        gridTemplate = 'flex-1'; // Just the main grid
+      } else if (sideBoxStyle === 'pinyin') {
+        gridTemplate = 'w-3/4'; // Main grid is 75%, side is 25%
+      } else if (sideBoxStyle === 'zhuyin') {
+        gridTemplate = 'w-[70%]'; // Main grid 70%, side1 20%, side2 10%
+      }
+
+      // 1. Header Row (Large Characters)
+      const headerRow = document.createElement('div');
+      headerRow.className = 'flex border-b-4 border-black h-[120px] shrink-0';
+      
+      // 2. Stroke Sequence Row
+      const strokeRow = document.createElement('div');
+      strokeRow.className = 'flex border-b-4 border-black min-h-[360px] flex-1'; // Give it flexible but large space
+
+      // 3. Practice Rows
+      const practiceRowsCount = parseInt(practiceRowsSelect.value);
+      const practiceRows = [];
+      for (let r = 0; r < practiceRowsCount; r++) {
+        const row = document.createElement('div');
+        row.className = 'flex border-b-2 border-black last:border-b-0 flex-1';
+        practiceRows.push(row);
+      }
+
+      // Populate Columns
+      for (let i = 0; i < colsPerPage; i++) {
+        const char = pageChars[i] || ''; // Empty string if we run out of chars for this page
+        const charData = state.cache[char];
+
+        const isLastCol = (i === colsPerPage - 1);
+        const colBorderClass = isLastCol ? '' : 'border-r-4 border-black';
+
+        // --- Header Cell ---
+        const headerCell = document.createElement('div');
+        headerCell.className = `flex-1 flex ${colBorderClass} h-full p-2 items-center justify-center bg-white`;
+        if (char) {
+          headerCell.appendChild(createGridCell(char, charData, false, sideBoxStyle, 'header'));
+        }
+        headerRow.appendChild(headerCell);
+
+        // --- Stroke Sequence Cell ---
+        const strokeCell = document.createElement('div');
+        strokeCell.className = `flex-1 flex flex-col ${colBorderClass} h-full p-2 items-center justify-start bg-white overflow-hidden`;
+        if (char && charData) {
+          renderStrokeSequence(strokeCell, charData);
+        } else if (char && !charData) {
+          strokeCell.innerHTML = '<span class="text-xs text-red-400 mt-4">無筆順數據</span>';
+        }
+        strokeRow.appendChild(strokeCell);
+
+        // --- Practice Cells ---
+        const tracingRowsLimit = parseInt(tracingRowsSelect.value);
+        for (let r = 0; r < practiceRowsCount; r++) {
+          const practiceCell = document.createElement('div');
+          practiceCell.className = `flex-1 flex ${colBorderClass} h-full p-1.5 items-center justify-center bg-white`;
+          
+          if (char) {
+            const isTracing = (r < tracingRowsLimit);
+            practiceCell.appendChild(createGridCell(char, charData, isTracing, sideBoxStyle, 'practice'));
+          }
+          practiceRows[r].appendChild(practiceCell);
+        }
+      }
+
+      // Assemble the table
+      table.appendChild(headerRow);
+      table.appendChild(strokeRow);
+      practiceRows.forEach(row => table.appendChild(row));
+      
+      page.appendChild(table);
+      return page;
+    }
+
+    // Create a Grid Cell (Main Character Box + Optional Side Boxes)
+    function createGridCell(char, charData, isTracing, sideBoxStyle, type) {
+      const container = document.createElement('div');
+      container.className = 'flex w-full h-full justify-center items-center';
+
+      // Main Grid Box (Square)
+      const mainBox = document.createElement('div');
+      mainBox.className = 'relative h-full aspect-square border-2 border-slate-400 flex items-center justify-center';
+      
+      // Render Grid Lines (Tianzige / Mige)
+      const gridStyle = gridStyleSelect.value;
+      if (gridStyle !== 'blank') {
+        mainBox.appendChild(createGridLinesSVG(gridStyle));
+      }
+
+      // Render Character (if header or tracing)
+      if (type === 'header') {
+        if (charData) {
+          // Render high-quality SVG from Hanzi Writer data
+          const svg = createCharacterSVG(charData, charData.strokes.length, '#000000', false);
+          svg.classList.add('absolute', 'w-[85%]', 'h-[85%]', 'z-10');
+          mainBox.appendChild(svg);
+        } else {
+          // Fallback to standard text rendering if no data
+          const textSpan = document.createElement('span');
+          textSpan.className = 'absolute text-7xl font-kaiti z-10';
+          textSpan.textContent = char;
+          mainBox.appendChild(textSpan);
+        }
+      } else if (type === 'practice' && isTracing) {
+        if (charData) {
+          const svg = createCharacterSVG(charData, charData.strokes.length, '#d1d5db', false); // light gray for tracing
+          svg.classList.add('absolute', 'w-[85%]', 'h-[85%]', 'z-10');
+          mainBox.appendChild(svg);
+        } else {
+          const textSpan = document.createElement('span');
+          textSpan.className = 'absolute text-5xl font-kaiti text-gray-300 z-10';
+          textSpan.textContent = char;
+          mainBox.appendChild(textSpan);
+        }
+      }
+
+      container.appendChild(mainBox);
+
+      // Side Boxes
+      if (sideBoxStyle === 'pinyin') {
+        const sideBox = document.createElement('div');
+        sideBox.className = 'h-full w-8 border-y-2 border-r-2 border-slate-400 shrink-0';
+        container.appendChild(sideBox);
+      } else if (sideBoxStyle === 'zhuyin') {
+        // Taiwan style: 1 wide for Zhuyin, 1 narrow for tone
+        const zhuyinBox = document.createElement('div');
+        zhuyinBox.className = 'h-full w-6 border-y-2 border-r-2 border-slate-400 shrink-0';
+        
+        const toneBox = document.createElement('div');
+        toneBox.className = 'h-full w-3.5 border-y-2 border-r-2 border-slate-400 shrink-0';
+        
+        container.appendChild(zhuyinBox);
+        container.appendChild(toneBox);
+      }
+
+      return container;
+    }
+
+    // Render Stroke Sequence vertically in the column
+    function renderStrokeSequence(container, charData) {
+      const totalStrokes = charData.strokes.length;
+      const highlight = highlightNewCheck.checked;
+      const showOutline = showOutlineCheck.checked;
+
+      // Container info
+      const containerHeight = 340; // Approx height in px
+      // Calculate optimal size to fit all strokes vertically
+      const padding = 4;
+      const gap = 2;
+      const availableHeight = containerHeight - (padding * 2);
+      let svgSize = Math.floor((availableHeight - (totalStrokes - 1) * gap) / totalStrokes);
+      
+      // Clamp size between 16px and 32px for readability
+      svgSize = Math.max(14, Math.min(30, svgSize));
+
+      const seqContainer = document.createElement('div');
+      seqContainer.className = 'flex flex-col items-center justify-between h-full py-1';
+      seqContainer.style.gap = `${gap}px`;
+
+      for (let i = 0; i < totalStrokes; i++) {
+        // For the i-th step, we render strokes from 0 to i
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('viewBox', SVG_VIEWBOX);
+        svg.style.width = `${svgSize}px`;
+        svg.style.height = `${svgSize}px`;
+        svg.classList.add('shrink-0');
+
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        g.setAttribute('transform', SVG_TRANSFORM);
+
+        // 1. Draw background outline if enabled (all strokes in very light gray)
+        if (showOutline) {
+          charData.strokes.forEach(pathData => {
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', pathData);
+            path.setAttribute('fill', '#f3f4f6'); // ultra light gray
+            g.appendChild(path);
+          });
+        }
+
+        // 2. Draw completed strokes (0 to i-1)
+        for (let j = 0; j < i; j++) {
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('d', charData.strokes[j]);
+          // If highlighting new stroke, completed strokes are gray, otherwise black
+          path.setAttribute('fill', highlight ? '#9ca3af' : '#000000'); 
+          g.appendChild(path);
+        }
+
+        // 3. Draw the active/new stroke (i)
+        const activePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        activePath.setAttribute('d', charData.strokes[i]);
+        activePath.setAttribute('fill', highlight ? '#ef4444' : '#000000'); // Red if highlight, else black
+        g.appendChild(activePath);
+
+        svg.appendChild(g);
+        seqContainer.appendChild(svg);
+      }
+
+      container.appendChild(seqContainer);
+    }
+
+    // Helper: Create a full character SVG
+    function createCharacterSVG(charData, strokesCount, fillcolor, showOutline) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', SVG_VIEWBOX);
+
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('transform', SVG_TRANSFORM);
+
+      // Render outline if requested
+      if (showOutline) {
+        charData.strokes.forEach(pathData => {
+          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+          path.setAttribute('d', pathData);
+          path.setAttribute('fill', '#e5e7eb');
+          g.appendChild(path);
+        });
+      }
+
+      // Render strokes
+      for (let i = 0; i < strokesCount; i++) {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', charData.strokes[i]);
+        path.setAttribute('fill', fillcolor);
+        g.appendChild(path);
+      }
+
+      svg.appendChild(g);
+      return svg;
+    }
+
+    // Helper: Create Grid Lines SVG (Tianzige/Mige)
+    function createGridLinesSVG(style) {
+      const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('viewBox', '0 0 100 100');
+      svg.classList.add('absolute', 'inset-0', 'w-full', 'h-full', 'pointer-events-none');
+
+      if (style === 'tianzige' || style === 'mige') {
+        // Vertical center line
+        const vLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        vLine.setAttribute('x1', '50');
+        vLine.setAttribute('y1', '0');
+        vLine.setAttribute('x2', '50');
+        vLine.setAttribute('y2', '100');
+        vLine.classList.add('grid-line');
+        svg.appendChild(vLine);
+
+        // Horizontal center line
+        const hLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        hLine.setAttribute('x1', '0');
+        hLine.setAttribute('y1', '50');
+        hLine.setAttribute('x2', '100');
+        hLine.setAttribute('y2', '50');
+        hLine.classList.add('grid-line');
+        svg.appendChild(hLine);
+      }
+
+      if (style === 'mige') {
+        // Diagonal 1
+        const d1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        d1.setAttribute('x1', '0');
+        d1.setAttribute('y1', '0');
+        d1.setAttribute('x2', '100');
+        d1.setAttribute('y2', '100');
+        d1.classList.add('grid-line');
+        svg.appendChild(d1);
+
+        // Diagonal 2
+        const d2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        d2.setAttribute('x1', '100');
+        d2.setAttribute('y1', '0');
+        d2.setAttribute('x2', '0');
+        d2.setAttribute('y2', '100');
+        d2.classList.add('grid-line');
+        svg.appendChild(d2);
+      }
+
+      return svg;
+    }
+  </script>
+</body>
+</html>
