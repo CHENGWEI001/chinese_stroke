@@ -280,8 +280,12 @@
     const previewContainer = document.getElementById('previewContainer');
     const pageCountBadge = document.getElementById('pageCount');
 
-    // Default Characters on load
-    charInput.value = "著細色顏";
+    // Parse URL parameters on load
+    const urlParams = new URLSearchParams(window.location.search);
+    const charsFromUrl = urlParams.get('chars');
+
+    // Default Characters on load (fallback to URL param if present)
+    charInput.value = charsFromUrl !== null ? charsFromUrl : "著細色顏";
 
     // Event Listeners
     generateBtn.addEventListener('click', handleGenerate);
@@ -293,6 +297,15 @@
     // Core Handlers
     async function handleGenerate() {
       const text = charInput.value.trim();
+      
+      // Update URL parameter without reloading the page
+      const url = new URL(window.location);
+      if (text) {
+        url.searchParams.set('chars', text);
+      } else {
+        url.searchParams.delete('chars');
+      }
+      window.history.replaceState({}, '', url);
       if (!text) {
         previewContainer.innerHTML = `
           <div class="no-print bg-white p-12 rounded-xl shadow-md text-center text-gray-400 w-full max-w-[210mm]">
